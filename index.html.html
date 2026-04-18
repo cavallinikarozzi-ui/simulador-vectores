@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Vectores Pro</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --vectorA: #e74c3c;
+            --vectorB: #3498db;
+            --resultant: #27ae60;
+ }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 95%;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+ border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        @media (max-width: 850px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+ #canvas-container {
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+ .input-group {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .input-group h3 { margin-top: 0; font-size: 1rem; }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        label { font-size: 0.85rem; display: block; margin-bottom: 4px; }
+ input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background: var(--resultant);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+  button:hover { background: #219150; }
+
+        .data-panel {
+            margin-top: 15px;
+            font-family: monospace;
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .color-A { color: var(--vectorA); }
+        .color-B { color: var(--vectorB); }
+        .color-R { color: var(--resultant); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Simulador de Vectores</h1>
+        <p>Introduce magnitud y ángulo para sumar los vectores</p>
+    </header>
+
+    <div class="main-layout">
+        <div id="canvas-container">
+            <canvas id="vectorCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="input-group" style="border-left: 5px solid var(--vectorA)">
+                <h3 class="color-A">Vector A</h3>
+                <div class="input-row">
+                    <div>
+ <label>Magnitud</label>
+                        <input type="number" id="magA" value="50" oninput="draw()">
+                    </div>
+                    <div>
+                        <label>Ángulo (°)</label>
+                        <input type="number" id="angA" value="45" oninput="draw()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group" style="border-left: 5px solid var(--vectorB)">
+                <h3 class="color-B">Vector B</h3>
+                <div class="input-row">
+                    <div>
+ <label>Magnitud</label>
+                        <input type="number" id="magB" value="60" oninput="draw()">
+                    </div>
+                    <div>
+                        <label>Ángulo (°)</label>
+                        <input type="number" id="angB" value="120" oninput="draw()">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="calculateResultant()">Calcular Resultante</button>
+
+            <div class="data-panel" id="output">
+                <div>Esperando cálculos...</div>
+ </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('vectorCanvas');
+    const ctx = canvas.getContext('2d');
+    let showResultant = false;
+
+    function resizeCanvas() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = 450;
+  draw();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.onload = resizeCanvas;
+
+    function toRad(deg) { return deg * (Math.PI / 180); }
+
+    function drawArrow(x, y, mag, angle, color) {
+        const headlen = 10;
+        const targetX = x + mag * Math.cos(toRad(angle));
+        const targetY = y - mag * Math.sin(toRad(angle)); // Y invertida en canvas
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+
+        // Cabeza de la flecha
+        const ang = Math.atan2(targetY - y, targetX - x);
+        ctx.beginPath();
+        ctx.moveTo(targetX, targetY);
+        ctx.lineTo(targetX - headlen * Math.cos(ang - Math.PI / 6), targetY - headlen * Math.sin(ang - Math.PI / 6));
+        ctx.lineTo(targetX - headlen * Math.cos(ang + Math.PI / 6), targetY - headlen * Math.sin(ang + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+ return {x: targetX, y: targetY};
+    }
+
+    function drawGrid() {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Cuadrícula
+        ctx.strokeStyle = "#eee";
+        ctx.lineWidth = 1;
+        for(let i=0; i<canvas.width; i+=20) {
+            ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+for(let i=0; i<canvas.height; i+=20) {
+            ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+
+        // Ejes
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); ctx.stroke();
+    }
+
+    function calculateResultant() {
+        showResultant = true;
+        draw();
+    }
+ function draw() {
+        drawGrid();
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const scale = 2; // Factor visual para que el vector se vea bien
+
+        const mA = parseFloat(document.getElementById('magA').value) * scale;
+        const aA = parseFloat(document.getElementById('angA').value);
+        const mB = parseFloat(document.getElementById('magB').value) * scale;
+        const aB = parseFloat(document.getElementById('angB').value);
+
+        // Dibujar Vectores Originales desde el origen
+        drawArrow(cx, cy, mA, aA, '#e74c3c');
+        drawArrow(cx, cy, mB, aB, '#3498db');
+ // Cálculos matemáticos
+        const ax = (mA/scale) * Math.cos(toRad(aA));
+        const ay = (mA/scale) * Math.sin(toRad(aA));
+        const bx = (mB/scale) * Math.cos(toRad(aB));
+        const by = (mB/scale) * Math.sin(toRad(aB));
+
+        const rx = ax + bx;
+        const ry = ay + by;
+        const rMag = Math.sqrt(rx*rx + ry*ry);
+        const rAng = Math.atan2(ry, rx) * (180 / Math.PI);
+
+        if(showResultant) {
+ // Dibujar punta-cola para ayuda visual (opcional)
+            const endA = drawArrow(cx, cy, mA, aA, 'rgba(231, 76, 60, 0.5)');
+            drawArrow(endA.x, endA.y, mB, aB, 'rgba(52, 152, 219, 0.5)');
+            
+            // Dibujar resultante
+            drawArrow(cx, cy, rMag * scale, rAng, '#27ae60');
+        }
+
+        // Actualizar Panel
+        document.getElementById('output').innerHTML = `
+            <span class="color-A">Ax: ${ax.toFixed(2)} | Ay: ${ay.toFixed(2)}</span><br>
+            <span class="color-B">Bx: ${bx.toFixed(2)} | By: ${by.toFixed(2)}</span><br>
+            <hr>
+ <span class="color-R">Resultante:</span><br>
+            Rx: ${rx.toFixed(2)} | Ry: ${ry.toFixed(2)}<br>
+            <strong>Mag: ${rMag.toFixed(2)} | Ang: ${rAng.toFixed(2)}°</strong>
+        `;
+  }
+</script>
+
+</body>
+</html>
